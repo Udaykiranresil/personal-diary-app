@@ -10,7 +10,8 @@ app.set('trust proxy', 1)
 
 // ✅ On Render your frontend and backend are the SAME origin (same service URL),
 //    so CORS is only needed during local dev. We keep it flexible:
-const allowedOrigin = process.env.FRONTEND_URL || '*'
+const allowedOrigin = process.env.FRONTEND_URL 
+
 app.use(cors({
     origin: allowedOrigin,
     credentials: true
