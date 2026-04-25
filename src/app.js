@@ -5,23 +5,23 @@ const cors = require('cors')
 
 // ✅ FIX: cors must allow credentials + reflect origin (not wildcard) for sessions to work
 app.use(cors({
-    origin: 'process.env.FRONTEND_URL',
+    origin: process.env.FRONTEND_URL,
     credentials: true
 }))
 
 app.use(express.json())
 
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET, // ✅ FIXED
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
         secure: true,
-        sameSite : 'none',
+        sameSite: 'none',
         maxAge: 1000 * 60 * 60 * 24
     }
-}))
+}));
 app.use(express.static('public'))
 
 const { noteModel, content_save } = require('./note-models/note-model')
