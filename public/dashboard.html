@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Diary — Your Pages</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --ink: #1a1209;
+            --sepia: #8b6914;
+            --parchment: #f5edd6;
+            --parchment-mid: #ede0c0;
+            --parchment-dark: #e4d4a8;
+            --rust: #9b3a1a;
+            --gold: #c9a84c;
+            --gold-light: #e8c96a;
+            --green-ink: #2d5a3d;
+            --shadow: rgba(26, 18, 9, 0.18);
+            --shadow-deep: rgba(26, 18, 9, 0.38);
+            --sidebar-w: 260px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Crimson Text', Georgia, serif;
+            background: var(--ink);
+            color: var(--ink);
+            overflow-x: hidden;
+        }
+
+        /* ── Page transition ── */
+        .page-transition {
+            position: fixed;
+            inset: 0;
+            background: var(--parchment);
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.55s ease;
+        }
+
+        .page-transition.go {
+            opacity: 1;
+        }
+
+        /* ── Atmospheric BG ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 55% 70% at 5% 50%, #3d2a06 0%, transparent 60%),
+                radial-gradient(ellipse 40% 50% at 90% 20%, #2c1a04 0%, transparent 55%),
+                radial-gradient(ellipse 60% 60% at 50% 100%, #1a1005 0%, transparent 65%),
+                linear-gradient(155deg, #0f0b05 0%, #1e1408 40%, #120e06 100%);
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 15% 25%, rgba(201, 168, 76, 0.5) 0%, transparent 100%),
+                radial-gradient(1px 1px at 55% 10%, rgba(201, 168, 76, 0.3) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 75% 60%, rgba(201, 168, 76, 0.35) 0%, transparent 100%),
+                radial-gradient(1px 1px at 35% 80%, rgba(201, 168, 76, 0.2) 0%, transparent 100%),
+                radial-gradient(2px 2px at 88% 45%, rgba(201, 168, 76, 0.18) 0%, transparent 100%),
+                radial-gradient(1px 1px at 5% 70%, rgba(201, 168, 76, 0.4) 0%, transparent 100%);
+            z-index: 0;
+            animation: dust 14s ease-in-out infinite alternate;
+        }
+
+        @keyframes dust {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: translateY(-10px) translateX(5px);
+                opacity: 1;
+            }
+        }
+
+        /* ── Floating ink motes ── */
+        .mote {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            background: rgba(201, 168, 76, 0.08);
+            animation: moteFloat ease-in-out infinite alternate;
+        }
+
+        @keyframes moteFloat {
+            from {
+                transform: translateY(0) translateX(0);
+            }
+
+            to {
+                transform: translateY(-18px) translateX(8px);
+            }
+        }
+
+        .app {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            background: rgba(245, 237, 214, 0.065);
+            border-right: 1px solid rgba(201, 168, 76, 0.12);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            padding: 36px 0 28px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            animation: slideInLeft 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .sidebar-brand {
+            padding: 0 28px 32px;
+            border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+        }
+
+        .brand-label {
+            font-family: 'Crimson Text', serif;
+            font-size: 10px;
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+            color: rgba(201, 168, 76, 0.55);
+            font-style: italic;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .brand-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-style: italic;
+            color: var(--gold);
+            letter-spacing: -0.3px;
+            line-height: 1.1;
+        }
+
+        .sidebar-nav {
+            padding: 28px 16px;
+            flex: 1;
+        }
+
+        .nav-section-label {
+            font-family: 'Crimson Text', serif;
+            font-size: 10px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: rgba(201, 168, 76, 0.4);
+            padding: 0 12px;
+            margin-bottom: 10px;
+            margin-top: 22px;
+        }
+
+        .nav-section-label:first-child {
+            margin-top: 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-bottom: 3px;
+            color: rgba(245, 237, 214, 0.55);
+            font-family: 'Crimson Text', serif;
+            font-size: 15px;
+            font-style: italic;
+            letter-spacing: 0.3px;
+        }
+
+        .nav-item:hover {
+            background: rgba(201, 168, 76, 0.1);
+            color: var(--gold-light);
+        }
+
+        .nav-item.active {
+            background: rgba(201, 168, 76, 0.15);
+            color: var(--gold);
+            border-left: 2px solid var(--gold);
+        }
+
+        .nav-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+        .sidebar-footer {
+            padding: 20px 28px 0;
+            border-top: 1px solid rgba(201, 168, 76, 0.1);
+        }
+
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--rust), var(--sepia));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            color: var(--gold);
+            font-style: italic;
+            flex-shrink: 0;
+            border: 1.5px solid rgba(201, 168, 76, 0.3);
+        }
+
+        .user-info-name {
+            font-family: 'Crimson Text', serif;
+            font-size: 14px;
+            color: rgba(245, 237, 214, 0.8);
+            font-style: italic;
+        }
+
+        .user-info-sub {
+            font-size: 11px;
+            color: rgba(201, 168, 76, 0.45);
+            letter-spacing: 1px;
+        }
+
+        /* ── Logout btn in sidebar ── */
+        .btn-logout {
+            margin-top: 16px;
+            width: 100%;
+            background: transparent;
+            border: 1px solid rgba(155, 58, 26, 0.3);
+            color: rgba(245, 237, 214, 0.45);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-family: 'Crimson Text', serif;
+            font-size: 13px;
+            font-style: italic;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(155, 58, 26, 0.15);
+            border-color: rgba(155, 58, 26, 0.5);
+            color: rgba(245, 237, 214, 0.75);
+        }
+
+        /* ── Main ── */
+        .main {
+            flex: 1;
+            padding: 40px 44px 60px;
+            overflow-y: auto;
+            animation: fadeInMain 0.8s 0.2s both;
+        }
+
+        @keyframes fadeInMain {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .topbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 38px;
+            gap: 20px;
+        }
+
+        .topbar-greeting .greeting-small {
+            font-family: 'Crimson Text', serif;
+            font-size: 13px;
+            font-style: italic;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(201, 168, 76, 0.6);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .topbar-greeting h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--parchment);
+            line-height: 1.15;
+            letter-spacing: -0.5px;
+        }
+
+        .topbar-greeting h1 em {
+            font-style: italic;
+            color: var(--gold);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding-top: 8px;
+        }
+
+        .date-badge {
+            background: rgba(245, 237, 214, 0.08);
+            border: 1px solid rgba(201, 168, 76, 0.2);
+            border-radius: 10px;
+            padding: 10px 18px;
+            text-align: center;
+            backdrop-filter: blur(4px);
+            cursor: default;
+        }
+
+        .date-badge-day {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
+        }
+
+        .date-badge-month {
+            font-family: 'Crimson Text', serif;
+            font-size: 11px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: rgba(201, 168, 76, 0.6);
+            margin-top: 3px;
+        }
+
+        .btn-create {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--rust), #7a2c13);
+            color: var(--gold);
+            border: none;
+            padding: 12px 22px;
+            border-radius: 8px;
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            font-style: italic;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(155, 58, 26, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-create::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #b54520, var(--rust));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn-create:hover::before {
+            opacity: 1;
+        }
+
+        .btn-create:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 22px rgba(155, 58, 26, 0.5);
+        }
+
+        .btn-create span,
+        .btn-create svg {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Stats ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+            margin-bottom: 36px;
+        }
+
+        .stat-card {
+            background: rgba(245, 237, 214, 0.07);
+            border: 1px solid rgba(201, 168, 76, 0.14);
+            border-radius: 12px;
+            padding: 22px 24px;
+            backdrop-filter: blur(4px);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.25s ease, border-color 0.25s ease;
+            animation: fadeUp 0.7s both;
+        }
+
+        .stat-card:nth-child(1) {
+            animation-delay: 0.35s;
+        }
+
+        .stat-card:nth-child(2) {
+            animation-delay: 0.45s;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(201, 168, 76, 0.3);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: radial-gradient(ellipse, rgba(201, 168, 76, 0.08) 0%, transparent 70%);
+        }
+
+        .stat-icon {
+            font-size: 22px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-family: 'Crimson Text', serif;
+            font-size: 12px;
+            letter-spacing: 1.8px;
+            text-transform: uppercase;
+            color: rgba(201, 168, 76, 0.5);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-style: italic;
+            color: var(--parchment);
+            letter-spacing: -0.3px;
+        }
+
+        .section-link {
+            font-family: 'Crimson Text', serif;
+            font-size: 13px;
+            font-style: italic;
+            color: rgba(201, 168, 76, 0.55);
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            border-bottom: 1px dotted rgba(201, 168, 76, 0.3);
+            transition: color 0.2s;
+        }
+
+        .section-link:hover {
+            color: var(--gold);
+        }
+
+        .entries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 42px;
+        }
+
+        /* ── Entry cards ── */
+        .entry-card {
+            background: var(--parchment);
+            border-radius: 2px 10px 10px 2px;
+            box-shadow:
+                -5px 0 0 #6b4c1a,
+                -8px 3px 0 #4a3410,
+                0 6px 28px var(--shadow-deep),
+                inset 0 0 60px rgba(139, 105, 20, 0.06);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+            animation: fadeUp 0.7s both;
+        }
+
+        .entry-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow:
+                -5px 0 0 #6b4c1a,
+                -8px 3px 0 #4a3410,
+                0 14px 40px var(--shadow-deep),
+                inset 0 0 60px rgba(139, 105, 20, 0.06);
+        }
+
+        .entry-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(transparent, transparent 25px, rgba(139, 105, 20, 0.11) 25px, rgba(139, 105, 20, 0.11) 26px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .entry-card::after {
+            content: '';
+            position: absolute;
+            left: 42px;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background: rgba(155, 58, 26, 0.28);
+            z-index: 1;
+        }
+
+        .entry-inner {
+            position: relative;
+            z-index: 2;
+            padding: 22px 22px 20px 56px;
+        }
+
+        .entry-date {
+            font-family: 'Crimson Text', serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--sepia);
+            opacity: 0.7;
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
+        .entry-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1.3;
+            margin-bottom: 10px;
+            letter-spacing: -0.2px;
+        }
+
+        .entry-preview {
+            font-family: 'Crimson Text', serif;
+            font-size: 14px;
+            color: #5c3d10;
+            line-height: 1.7;
+            font-style: italic;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .entry-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(139, 105, 20, 0.18);
+        }
+
+        .entry-mood {
+            font-size: 18px;
+        }
+
+        .entry-words {
+            font-family: 'Crimson Text', serif;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(107, 76, 26, 0.5);
+            font-style: italic;
+        }
+
+        .entry-fold {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 0 28px 28px;
+            border-color: transparent transparent var(--parchment-dark) transparent;
+            z-index: 3;
+            filter: drop-shadow(-1px -1px 2px rgba(26, 18, 9, 0.12));
+        }
+
+        .entry-card-new {
+            background: rgba(245, 237, 214, 0.05);
+            border: 1.5px dashed rgba(201, 168, 76, 0.25);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 40px 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 200px;
+            animation: fadeUp 0.7s 0.9s both;
+        }
+
+        .entry-card-new:hover {
+            background: rgba(245, 237, 214, 0.09);
+            border-color: rgba(201, 168, 76, 0.5);
+            transform: translateY(-3px);
+        }
+
+        .new-plus {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(201, 168, 76, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: rgba(201, 168, 76, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .entry-card-new:hover .new-plus {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(201, 168, 76, 0.1);
+        }
+
+        .new-label {
+            font-family: 'Crimson Text', serif;
+            font-size: 15px;
+            font-style: italic;
+            color: rgba(201, 168, 76, 0.5);
+            letter-spacing: 0.5px;
+        }
+
+        .entry-card-new:hover .new-label {
+            color: var(--gold);
+        }
+
+        /* ── Mood row ── */
+        .mood-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 36px;
+            animation: fadeUp 0.7s 0.65s both;
+        }
+
+        .mood-chip {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 16px;
+            border-radius: 20px;
+            background: rgba(245, 237, 214, 0.07);
+            border: 1px solid rgba(201, 168, 76, 0.14);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: 'Crimson Text', serif;
+            font-size: 13px;
+            font-style: italic;
+            color: rgba(245, 237, 214, 0.6);
+            letter-spacing: 0.3px;
+        }
+
+        .mood-chip:hover,
+        .mood-chip.active {
+            background: rgba(201, 168, 76, 0.15);
+            border-color: rgba(201, 168, 76, 0.4);
+            color: var(--gold);
+        }
+
+        /* ── Writing prompt ── */
+        .write-prompt {
+            background: linear-gradient(135deg, rgba(45, 90, 61, 0.18), rgba(45, 90, 61, 0.08));
+            border: 1px solid rgba(45, 90, 61, 0.35);
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 36px;
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp 0.7s 0.7s both;
+        }
+
+        .write-prompt::before {
+            content: '"';
+            position: absolute;
+            right: 24px;
+            top: -10px;
+            font-family: 'Playfair Display', serif;
+            font-size: 120px;
+            color: rgba(45, 90, 61, 0.15);
+            line-height: 1;
+            font-style: italic;
+            pointer-events: none;
+        }
+
+        .prompt-label {
+            font-family: 'Crimson Text', serif;
+            font-size: 11px;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: rgba(45, 90, 61, 0.7);
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .prompt-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-style: italic;
+            color: rgba(245, 237, 214, 0.85);
+            line-height: 1.5;
+            max-width: 520px;
+            transition: opacity 0.25s, transform 0.25s;
+        }
+
+        .prompt-action {
+            margin-top: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Crimson Text', serif;
+            font-size: 13px;
+            font-style: italic;
+            color: rgba(45, 90, 61, 0.7);
+            cursor: pointer;
+            border-bottom: 1px dotted rgba(45, 90, 61, 0.4);
+            transition: color 0.2s;
+        }
+
+        .prompt-action:hover {
+            color: #5aad7a;
+        }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 10, 4, 0.75);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-diary {
+            width: 100%;
+            max-width: 560px;
+            background: var(--parchment);
+            border-radius: 2px 14px 14px 2px;
+            box-shadow: -8px 0 0 #6b4c1a, -13px 5px 0 #3d2508, 0 16px 60px rgba(26, 18, 9, 0.6);
+            position: relative;
+            overflow: hidden;
+            transform: scale(0.93) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .modal-overlay.open .modal-diary {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-diary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: repeating-linear-gradient(transparent, transparent 27px, rgba(139, 105, 20, 0.11) 27px, rgba(139, 105, 20, 0.11) 28px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .modal-diary::after {
+            content: '';
+            position: absolute;
+            left: 54px;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background: rgba(155, 58, 26, 0.3);
+            z-index: 1;
+        }
+
+        .modal-inner {
+            position: relative;
+            z-index: 2;
+            padding: 40px 40px 36px 68px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-style: italic;
+            color: var(--ink);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: rgba(107, 76, 26, 0.5);
+            font-size: 22px;
+            line-height: 1;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--rust);
+        }
+
+        .modal-date-label {
+            font-family: 'Crimson Text', serif;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--sepia);
+            opacity: 0.7;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .modal-field {
+            margin-bottom: 18px;
+        }
+
+        .modal-field label {
+            display: block;
+            font-family: 'Crimson Text', serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--sepia);
+            margin-bottom: 7px;
+            font-style: italic;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1.5px solid rgba(139, 105, 20, 0.3);
+            padding: 7px 0 9px;
+            font-family: 'Crimson Text', serif;
+            font-size: 17px;
+            color: var(--ink);
+            outline: none;
+            transition: border-color 0.3s;
+            letter-spacing: 0.3px;
+        }
+
+        .modal-input::placeholder {
+            color: rgba(107, 76, 26, 0.38);
+            font-style: italic;
+        }
+
+        .modal-input:focus {
+            border-bottom-color: var(--rust);
+        }
+
+        .modal-textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1.5px solid rgba(139, 105, 20, 0.2);
+            padding: 7px 0 9px;
+            font-family: 'Crimson Text', serif;
+            font-size: 16px;
+            color: var(--ink);
+            outline: none;
+            resize: none;
+            min-height: 130px;
+            line-height: 27px;
+            letter-spacing: 0.2px;
+            transition: border-color 0.3s;
+        }
+
+        .modal-textarea::placeholder {
+            color: rgba(107, 76, 26, 0.38);
+            font-style: italic;
+        }
+
+        .modal-textarea:focus {
+            border-bottom-color: var(--rust);
+        }
+
+        .mood-picker {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+
+        .mood-btn {
+            padding: 6px 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(139, 105, 20, 0.25);
+            background: transparent;
+            font-size: 17px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .mood-btn span {
+            font-family: 'Crimson Text', serif;
+            font-size: 12px;
+            color: rgba(107, 76, 26, 0.6);
+            font-style: italic;
+        }
+
+        .mood-btn:hover,
+        .mood-btn.selected {
+            background: rgba(139, 105, 20, 0.12);
+            border-color: rgba(139, 105, 20, 0.45);
+        }
+
+        .modal-footer {
+            margin-top: 28px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-save {
+            flex: 1;
+            background: var(--ink);
+            color: var(--gold);
+            border: none;
+            padding: 13px 24px;
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            font-style: italic;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-save::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--rust);
+            transform: translateX(-101%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-save:hover::before {
+            transform: translateX(0);
+        }
+
+        .btn-save:hover {
+            box-shadow: 0 4px 18px rgba(155, 58, 26, 0.4);
+        }
+
+        .btn-save span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-save:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid rgba(107, 76, 26, 0.3);
+            color: rgba(107, 76, 26, 0.6);
+            padding: 13px 20px;
+            font-family: 'Crimson Text', serif;
+            font-size: 14px;
+            font-style: italic;
+            cursor: pointer;
+            border-radius: 2px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+            border-color: rgba(107, 76, 26, 0.55);
+            color: rgba(107, 76, 26, 0.85);
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 200;
+            background: var(--parchment);
+            border-left: 3px solid var(--green-ink);
+            padding: 14px 20px;
+            border-radius: 2px 8px 8px 2px;
+            font-family: 'Crimson Text', serif;
+            font-size: 14px;
+            font-style: italic;
+            color: var(--ink);
+            box-shadow: 0 8px 28px rgba(26, 18, 9, 0.35);
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(201, 168, 76, 0.2);
+            border-radius: 4px;
+        }
+
+        @media (max-width: 860px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                padding: 28px 22px 50px;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                flex-direction: column;
+            }
+
+            .entries-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delete-btn {
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-transition" id="page-transition"></div>
+
+    <div class="app">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-label">Private Journal</span>
+                <div class="brand-title">My Diary</div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">Pages</div>
+                <div class="nav-item active"><span class="nav-icon">📖</span> Dashboard</div>
+                <div class="nav-item" onclick="openModal()"><span class="nav-icon">✒️</span> New Entry</div>
+
+                <div class="nav-section-label">Chapters</div>
+                <div class="nav-item"><span class="nav-icon">🌅</span> Morning Pages</div>
+                <div class="nav-item"><span class="nav-icon">🌙</span> Night Thoughts</div>
+                <div class="nav-item"><span class="nav-icon">💭</span> Dreams</div>
+                <div class="nav-item"><span class="nav-icon">🎯</span> Goals</div>
+
+                <div class="nav-section-label">Archive</div>
+                <div class="nav-item"><span class="nav-icon">📅</span> Calendar</div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-chip">
+                    <div class="user-avatar" id="sidebar-avatar">—</div>
+                    <div>
+                        <div class="user-info-name" id="sidebar-username">…</div>
+                        <div class="user-info-sub">Diarist</div>
+                    </div>
+                </div>
+                <button class="btn-logout" id="logout-btn">
+                    <span>↩</span> Sign out
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main">
+            <div class="topbar">
+                <div class="topbar-greeting">
+                    <span class="greeting-small" id="time-greeting">Good Morning</span>
+                    <h1>Your Personal <em>Diary</em></h1>
+                </div>
+                <div class="topbar-right">
+                    <div class="date-badge">
+                        <div class="date-badge-day" id="badge-day"></div>
+                        <div class="date-badge-month" id="badge-month"></div>
+                    </div>
+                    <button class="btn-create" id="open-modal-btn">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        <span>Create New</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <span class="stat-icon">📝</span>
+                    <div class="stat-value" id="stat-entries">—</div>
+                    <div class="stat-label">Entries Written</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">🔥</span>
+                    <div class="stat-value" id="stat-streak">—</div>
+                    <div class="stat-label">Day Streak</div>
+                </div>
+            </div>
+
+            <!-- Daily Prompt -->
+            <div class="write-prompt">
+                <div class="prompt-label">Today's Writing Prompt</div>
+                <div class="prompt-text" id="daily-prompt">What small moment today made you quietly smile?</div>
+                <div class="prompt-action" id="new-prompt-btn">✦ New prompt →</div>
+            </div>
+
+            <!-- Mood filter -->
+            <div class="section-header">
+                <div class="section-title">Filter by Mood</div>
+            </div>
+            <div class="mood-row" id="mood-row">
+                <div class="mood-chip active" data-mood="all">All</div>
+                <div class="mood-chip" data-mood="😊">😊 Happy</div>
+                <div class="mood-chip" data-mood="😔">😔 Melancholy</div>
+                <div class="mood-chip" data-mood="🤔">🤔 Reflective</div>
+                <div class="mood-chip" data-mood="😤">😤 Frustrated</div>
+                <div class="mood-chip" data-mood="🌟">🌟 Inspired</div>
+                <div class="mood-chip" data-mood="😴">😴 Tired</div>
+                <div class="mood-chip" data-mood="❤️">❤️ Grateful</div>
+            </div>
+
+            <!-- Recent entries -->
+            <div class="section-header">
+                <div class="section-title">Recent Pages</div>
+            </div>
+            <div class="entries-grid" id="entries-grid"></div>
+        </main>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-diary">
+            <div class="modal-inner">
+                <div class="modal-header">
+                    <div class="modal-title" id="modal-title">A New Page</div>
+                    <button class="modal-close" id="close-modal">✕</button>
+                </div>
+                <div class="modal-date-label" id="modal-date-label"></div>
+
+                <div class="modal-field">
+                    <label for="entry-title">Entry Title</label>
+                    <input type="text" class="modal-input" id="entry-title" placeholder="Give this page a name…"
+                        autocomplete="off">
+                </div>
+
+                <div class="modal-field">
+                    <label for="entry-body">Your Thoughts</label>
+                    <textarea class="modal-textarea" id="entry-body"
+                        placeholder="Let your thoughts flow freely here…"></textarea>
+                </div>
+
+                <div class="modal-field">
+                    <label>How are you feeling?</label>
+                    <div class="mood-picker" id="mood-picker">
+                        <button class="mood-btn" data-emoji="😊"><span>Happy</span> 😊</button>
+                        <button class="mood-btn" data-emoji="😔"><span>Sad</span> 😔</button>
+                        <button class="mood-btn" data-emoji="🤔"><span>Reflective</span> 🤔</button>
+                        <button class="mood-btn" data-emoji="🌟"><span>Inspired</span> 🌟</button>
+                        <button class="mood-btn" data-emoji="❤️"><span>Grateful</span> ❤️</button>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn-save" id="save-entry-btn"><span>Ink This Page →</span></button>
+                    <button class="btn-cancel" id="cancel-btn">Discard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const BASE = '';
+
+        // ── Page transition ──
+        function navigateTo(url) {
+            const t = document.getElementById('page-transition');
+            t.classList.add('go');
+            setTimeout(() => window.location.href = url, 560);
+        }
+
+        // ── Toast ──
+        function showToast(msg, duration = 2800) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), duration);
+        }
+
+        // ── Auth guard: redirect to login if not logged in ──
+        // ✅ FIX: dashboard now checks session on load
+        async function checkAuth() {
+            try {
+                const res = await fetch(`${BASE}/me`, { credentials: 'include' });
+                if (!res.ok) {
+                    navigateTo('login.html');
+                    return null;
+                }
+                const data = await res.json();
+                if (!data.loggedIn) { navigateTo('login.html'); return null; }
+                return data.username;
+            } catch {
+                navigateTo('login.html');
+                return null;
+            }
+        }
+
+        // ── Logout ──
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await fetch(`${BASE}/logout`, { method: 'POST', credentials: 'include' });
+            navigateTo('login.html');
+        });
+
+        // ── Helpers ──
+        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        const monthsFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        function getCurrentDayname() {
+            const d = new Date();
+            return String(d.getDate()).padStart(2, '0') + months[d.getMonth()] + d.getFullYear();
+        }
+        function convertToISO(str) {
+            const m = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 };
+            return new Date(parseInt(str.slice(5)), m[str.slice(2, 5)], parseInt(str.slice(0, 2))).toISOString();
+        }
+        function formatDate(iso) {
+            const d = new Date(iso);
+            return months[d.getMonth()] + ' ' + String(d.getDate()).padStart(2, '0') + ', ' + d.getFullYear();
+        }
+        function wordCount(text) { return text && text.trim() ? text.trim().split(/\s+/).length : 0; }
+        function escHtml(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        // ── Date display ──
+        const now = new Date();
+        document.getElementById('badge-day').textContent = now.getDate();
+        document.getElementById('badge-month').textContent = months[now.getMonth()] + ' ' + now.getFullYear();
+        document.getElementById('modal-date-label').textContent =
+            dayNames[now.getDay()] + ', ' + now.getDate() + ' ' + monthsFull[now.getMonth()] + ' ' + now.getFullYear();
+
+        const hour = now.getHours();
+        document.getElementById('time-greeting').textContent =
+            hour < 12 ? '— Good Morning' : hour < 17 ? '— Good Afternoon' : '— Good Evening';
+
+        // ── State ──
+        let entries = [], activeMood = 'all', selectedMoodEmoji = '', editingEntryId = null;
+
+        // ── Backend calls (all with credentials: 'include') ──
+        async function fetchStreak() {
+            try {
+                const res = await fetch(`${BASE}/streak`, { credentials: 'include' });
+                const data = await res.json();
+                document.getElementById('stat-streak').textContent = data.streak ?? '0';
+            } catch {
+                document.getElementById('stat-streak').textContent = '0';
+            }
+        }
+
+        async function fetchEntries() {
+            try {
+                const res = await fetch(`${BASE}/all-diaries`, { credentials: 'include' });
+                if (res.status === 401) { navigateTo('login.html'); return; }
+                const data = await res.json();
+                entries = data.map(e => ({
+                    id: e._id,
+                    title: e.title,
+                    body: e.text,
+                    mood: e.mood || '📝',
+                    date: convertToISO(e.dayname)
+                }));
+                document.getElementById('stat-entries').textContent = entries.length;
+                renderEntries();
+            } catch (err) {
+                console.error('Error fetching entries:', err);
+                renderEntries();
+            }
+        }
+
+        async function saveEntryToBackend(title, body) {
+            const res = await fetch(`${BASE}/write-diary`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',           // ✅ FIX: session cookie sent
+                body: JSON.stringify({ dayname: getCurrentDayname(), title, content: body })
+            });
+            return res.json();
+        }
+
+        async function updateEntryOnBackend(id, title, body, mood) {
+            const res = await fetch(`${BASE}/update-diary/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',           // ✅ FIX: session cookie sent
+                body: JSON.stringify({ title, content: body, mood })
+            });
+            return res.json();
+        }
+
+        // ── Render ──
+        function renderEntries() {
+            const grid = document.getElementById('entries-grid');
+            grid.innerHTML = '';
+
+            const filtered = activeMood === 'all' ? entries : entries.filter(e => e.mood === activeMood);
+            const display = [...filtered].slice(0, 6);
+
+            display.forEach((entry, idx) => {
+                const card = document.createElement('div');
+                card.className = 'entry-card';
+                card.style.animationDelay = (0.1 + idx * 0.08) + 's';
+                card.innerHTML = `
+                    <div class="entry-inner">
+                        <div class="entry-date">${formatDate(entry.date)}</div>
+                         <button class="delete-btn">🗑</button>
+                        <div class="entry-title">${escHtml(entry.title)}</div>
+                        <div class="entry-preview">${escHtml(entry.body)}</div>
+                        <div class="entry-footer">
+                            <span class="entry-mood">${entry.mood || '📝'}</span>
+                            <span class="entry-words">${wordCount(entry.body)} words</span>
+                        </div>
+                    </div>
+                    <div class="entry-fold"></div>
+                `;
+                card.querySelector('.delete-btn').addEventListener('click', async (e) => {
+                    e.stopPropagation(); // 🔥 important (prevents opening edit modal)
+
+                    const password = prompt("Enter your password to delete:");
+
+                    if (!password) return;
+
+                    try {
+                        const res = await fetch(`/delete-diary/${entry.id}`, {
+                            method: 'DELETE',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ password })
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) {
+                            alert(data.error);
+                            return;
+                        }
+
+                        alert("Deleted successfully");
+                        await fetchEntries(); // refresh list
+
+                    } catch (err) {
+                        console.error(err);
+                        alert("Error deleting diary");
+                    }
+                });
+                card.addEventListener('click', () => openEditModal(entry));
+                grid.appendChild(card);
+            });
+
+            const newCard = document.createElement('div');
+            newCard.className = 'entry-card-new';
+            newCard.innerHTML = `<div class="new-plus">+</div><div class="new-label">Begin a new page…</div>`;
+            newCard.addEventListener('click', openModal);
+            grid.appendChild(newCard);
+        }
+
+        // ── Modal ──
+        const modal = document.getElementById('modal');
+
+        function openModal() {
+            editingEntryId = null;
+            document.getElementById('modal-title').textContent = 'A New Page';
+            document.getElementById('entry-title').value = '';
+            document.getElementById('entry-body').value = '';
+            selectedMoodEmoji = '';
+            document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+            modal.classList.add('open');
+            setTimeout(() => document.getElementById('entry-title').focus(), 350);
+        }
+
+        function openEditModal(entry) {
+            editingEntryId = entry.id;
+            document.getElementById('modal-title').textContent = 'Edit Page';
+            document.getElementById('entry-title').value = entry.title;
+            document.getElementById('entry-body').value = entry.body;
+            selectedMoodEmoji = entry.mood;
+            document.querySelectorAll('.mood-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.emoji === entry.mood);
+            });
+            modal.classList.add('open');
+        }
+
+        function closeModal() {
+            modal.classList.remove('open');
+            editingEntryId = null; selectedMoodEmoji = '';
+            document.getElementById('entry-title').value = '';
+            document.getElementById('entry-body').value = '';
+            document.getElementById('modal-title').textContent = 'A New Page';
+            document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+        }
+
+        document.getElementById('open-modal-btn').addEventListener('click', openModal);
+        document.getElementById('close-modal').addEventListener('click', closeModal);
+        document.getElementById('cancel-btn').addEventListener('click', closeModal);
+        modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+        document.querySelectorAll('.mood-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedMoodEmoji = btn.dataset.emoji;
+            });
+        });
+
+        // ── Save (single handler, create vs update) ──
+        document.getElementById('save-entry-btn').addEventListener('click', async () => {
+            const titleVal = document.getElementById('entry-title').value.trim();
+            const bodyVal = document.getElementById('entry-body').value.trim();
+
+            if (!titleVal && !bodyVal) { document.getElementById('entry-title').focus(); return; }
+
+            const saveBtn = document.getElementById('save-entry-btn');
+            saveBtn.disabled = true;
+            saveBtn.querySelector('span').textContent = 'Saving…';
+
+            try {
+                if (editingEntryId) {
+                    await updateEntryOnBackend(editingEntryId, titleVal, bodyVal, selectedMoodEmoji);
+                    showToast('✓ Page updated');
+                } else {
+                    await saveEntryToBackend(titleVal || 'Untitled Entry', bodyVal);
+                    showToast('✓ Page inked — your words are safe');
+                }
+            } catch (err) {
+                console.error('Failed to save entry:', err);
+                showToast('Something went wrong. Try again.');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.querySelector('span').textContent = 'Ink This Page →';
+            }
+
+            closeModal();
+            await Promise.all([fetchEntries(), fetchStreak()]);
+        });
+
+        // ── Mood filter ──
+        document.getElementById('mood-row').addEventListener('click', e => {
+            const chip = e.target.closest('.mood-chip');
+            if (!chip) return;
+            document.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeMood = chip.dataset.mood;
+            renderEntries();
+        });
+
+        // ── Writing prompts ──
+        const prompts = [
+            "What small moment today made you quietly smile?",
+            "Describe a place that always feels like home — real or imagined.",
+            "What is something you've been carrying silently?",
+            "If today had a colour, what would it be and why?",
+            "Write a letter to the version of you from five years ago.",
+            "What do you wish someone would ask you about today?",
+            "Describe the last time you felt completely at peace.",
+            "What would you do if you knew you couldn't fail?",
+            "What is one thing you want to remember about this exact moment?",
+            "What conversation do you keep replaying in your mind?",
+        ];
+        let promptIndex = Math.floor(Math.random() * prompts.length);
+        document.getElementById('daily-prompt').textContent = prompts[promptIndex];
+        document.getElementById('new-prompt-btn').addEventListener('click', () => {
+            promptIndex = (promptIndex + 1) % prompts.length;
+            const el = document.getElementById('daily-prompt');
+            el.style.opacity = '0'; el.style.transform = 'translateY(6px)';
+            setTimeout(() => {
+                el.textContent = prompts[promptIndex];
+                el.style.opacity = '1'; el.style.transform = 'translateY(0)';
+            }, 250);
+        });
+
+        // ── Floating motes ──
+        for (let i = 0; i < 10; i++) {
+            const m = document.createElement('div');
+            m.className = 'mote';
+            const size = 40 + Math.random() * 120;
+            m.style.cssText = `
+                width:${size}px; height:${size}px;
+                top:${Math.random() * 90}%; left:${Math.random() * 100}%;
+                animation-duration:${6 + Math.random() * 10}s;
+                animation-delay:${Math.random() * 8}s;
+            `;
+            document.body.appendChild(m);
+        }
+
+        // ── Bootstrap: auth check then load data ──
+        (async () => {
+            const username = await checkAuth();
+            if (!username) return;
+
+            // Show username in sidebar
+            document.getElementById('sidebar-username').textContent = username;
+            document.getElementById('sidebar-avatar').textContent = username[0].toUpperCase();
+
+            await Promise.all([fetchEntries(), fetchStreak()]);
+        })();
+    </script>
+</body>
+
+</html>

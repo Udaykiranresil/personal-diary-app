@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Diary — Return to Your Pages</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ink: #1a1209;
+            --sepia: #8b6914;
+            --parchment: #f5edd6;
+            --parchment-dark: #ede0c0;
+            --rust: #9b3a1a;
+            --gold: #c9a84c;
+            --green-ink: #2d5a3d;
+            --shadow: rgba(26,18,9,0.18);
+            --shadow-deep: rgba(26,18,9,0.44);
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Crimson Text', Georgia, serif;
+            background: var(--ink);
+            color: var(--ink);
+            overflow-x: hidden;
+        }
+
+        /* ── Page transition ── */
+        .page-transition {
+            position: fixed; inset: 0;
+            background: var(--parchment);
+            z-index: 999; pointer-events: none;
+            opacity: 0; transition: opacity 0.55s ease;
+        }
+        .page-transition.go { opacity: 1; }
+
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background:
+                radial-gradient(ellipse 55% 65% at 80% 50%, #2c1f05 0%, transparent 65%),
+                radial-gradient(ellipse 45% 55% at 20% 35%, #1e1504 0%, transparent 60%),
+                radial-gradient(ellipse 70% 75% at 50% 0%, #12100a 0%, transparent 70%),
+                linear-gradient(140deg, #0e0c06 0%, #1c1207 40%, #110d05 100%);
+            z-index: 0;
+        }
+
+        body::after {
+            content: ''; position: fixed; inset: 0;
+            background-image:
+                radial-gradient(1.5px 1.5px at 25% 25%, rgba(201,168,76,0.32) 0%, transparent 100%),
+                radial-gradient(1px 1px at 70% 20%, rgba(201,168,76,0.22) 0%, transparent 100%),
+                radial-gradient(1px 1px at 85% 70%, rgba(201,168,76,0.38) 0%, transparent 100%),
+                radial-gradient(2px 2px at 35% 85%, rgba(201,168,76,0.16) 0%, transparent 100%),
+                radial-gradient(1px 1px at 55% 55%, rgba(201,168,76,0.28) 0%, transparent 100%);
+            z-index: 0;
+            animation: dust 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes dust {
+            0%   { transform: translateY(0) translateX(0); opacity: 0.5; }
+            100% { transform: translateY(-6px) translateX(-4px); opacity: 0.9; }
+        }
+
+        .glow {
+            position: fixed; width: 480px; height: 480px; border-radius: 50%;
+            background: radial-gradient(ellipse, rgba(185,115,25,0.17) 0%, transparent 70%);
+            top: 50%; left: 50%; transform: translate(-50%,-50%);
+            z-index: 1; animation: flicker 5s ease-in-out infinite; pointer-events: none;
+        }
+
+        @keyframes flicker {
+            0%,100% { opacity: 1;    transform: translate(-50%,-50%) scale(1); }
+            20%      { opacity: 0.9;  transform: translate(-50%,-50%) scale(1.04); }
+            50%      { opacity: 0.82; transform: translate(-50%,-50%) scale(0.97); }
+            75%      { opacity: 0.95; transform: translate(-50%,-50%) scale(1.02); }
+        }
+
+        /* Drifting feather-like wisps */
+        .wisp {
+            position: fixed; z-index: 1; pointer-events: none;
+            width: 2px; border-radius: 50%;
+            background: rgba(201,168,76,0.3);
+            animation: drift linear infinite;
+        }
+        @keyframes drift {
+            0%   { transform: translateY(110vh) translateX(0) rotate(0deg); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 0.4; }
+            100% { transform: translateY(-10vh) translateX(40px) rotate(360deg); opacity: 0; }
+        }
+
+        .page-wrapper {
+            position: relative; z-index: 2;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .diary-card {
+            width: 100%; max-width: 440px;
+            background: var(--parchment);
+            border-radius: 2px 12px 12px 2px;
+            box-shadow:
+                -6px 0 0 #5c3d10,
+                -10px 4px 0 #3d2508,
+                0 10px 50px var(--shadow-deep),
+                inset 0 0 100px rgba(139,105,20,0.06);
+            position: relative; overflow: hidden;
+            animation: pageOpen 0.9s cubic-bezier(0.22,1,0.36,1) forwards;
+            transform-origin: left center;
+        }
+
+        @keyframes pageOpen {
+            from { opacity: 0; transform: perspective(800px) rotateY(-10deg) translateX(-24px); }
+            to   { opacity: 1; transform: perspective(800px) rotateY(0deg) translateX(0); }
+        }
+
+        .diary-card::before {
+            content: ''; position: absolute; inset: 0;
+            background-image: repeating-linear-gradient(
+                transparent, transparent 27px,
+                rgba(139,105,20,0.10) 27px, rgba(139,105,20,0.10) 28px
+            );
+            pointer-events: none; z-index: 0;
+        }
+        .diary-card::after {
+            content: ''; position: absolute;
+            left: 54px; top: 0; bottom: 0; width: 1.5px;
+            background: rgba(155,58,26,0.3); z-index: 1;
+        }
+
+        /* Page corner fold */
+        .page-fold {
+            position: absolute; bottom: 0; right: 0;
+            width: 0; height: 0; border-style: solid;
+            border-width: 0 0 42px 42px;
+            border-color: transparent transparent #e2d0a0 transparent;
+            filter: drop-shadow(-2px -2px 3px rgba(26,18,9,0.15));
+            z-index: 3;
+            animation: foldAppear 1.2s 0.5s both;
+        }
+        @keyframes foldAppear {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        svg.corner-ornament {
+            position: absolute; top: 14px; right: 16px;
+            width: 50px; height: 50px; opacity: 0.16;
+        }
+
+        .card-inner { position: relative; z-index: 2; padding: 52px 48px 44px 72px; }
+
+        .diary-header { margin-bottom: 30px; animation: fadeUp 0.8s 0.3s both; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .diary-label {
+            font-family: 'Crimson Text', serif; font-size: 11px;
+            font-style: italic; letter-spacing: 3px; text-transform: uppercase;
+            color: var(--sepia); margin-bottom: 8px; display: block;
+        }
+        .diary-title {
+            font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 700;
+            color: var(--ink); line-height: 1.15; letter-spacing: -0.5px;
+        }
+        .diary-title em { font-style: italic; color: var(--green-ink); }
+
+        .diary-subtitle {
+            font-family: 'Crimson Text', serif; font-size: 15px;
+            font-style: italic; color: #6b4c1a; margin-top: 10px; line-height: 1.5;
+        }
+
+        .date-stamp {
+            font-family: 'Crimson Text', serif; font-size: 12px;
+            color: var(--sepia); letter-spacing: 1px;
+            margin-bottom: 22px; opacity: 0.7;
+            animation: fadeUp 0.8s 0.45s both;
+        }
+
+        .diary-quote {
+            font-family: 'Playfair Display', serif; font-size: 13px;
+            font-style: italic; color: rgba(107,76,26,0.55);
+            line-height: 1.6; margin-bottom: 22px;
+            padding-left: 14px;
+            border-left: 2px solid rgba(139,105,20,0.25);
+            animation: fadeUp 0.8s 0.5s both;
+        }
+
+        .quill-divider {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 26px; animation: fadeUp 0.8s 0.53s both;
+        }
+        .quill-divider::before, .quill-divider::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(to right, transparent, rgba(139,105,20,0.35), transparent);
+        }
+        .quill-divider span { font-size: 14px; color: var(--sepia); opacity: 0.55; }
+
+        .field-group { margin-bottom: 22px; animation: fadeUp 0.8s both; }
+        .field-group:nth-child(1) { animation-delay: 0.58s; }
+        .field-group:nth-child(2) { animation-delay: 0.68s; }
+
+        .field-label {
+            display: block; font-family: 'Crimson Text', serif;
+            font-size: 12px; font-style: italic; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--sepia); margin-bottom: 7px;
+        }
+        .field-input {
+            width: 100%; background: transparent; border: none;
+            border-bottom: 1.5px solid rgba(139,105,20,0.32);
+            padding: 8px 0 10px; font-family: 'Crimson Text', serif;
+            font-size: 17px; color: var(--ink); outline: none;
+            transition: border-color 0.3s ease; letter-spacing: 0.3px;
+        }
+        .field-input::placeholder { color: rgba(107,76,26,0.38); font-style: italic; }
+        .field-input:focus { border-bottom-color: var(--green-ink); }
+
+        .msg {
+            font-family: 'Crimson Text', serif; font-size: 13px;
+            font-style: italic; margin-top: 6px; display: none;
+        }
+        .msg-error { color: var(--rust); animation: shake 0.4s ease; }
+        .msg-success { color: var(--green-ink); }
+
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            25%      { transform: translateX(-4px); }
+            75%      { transform: translateX(4px); }
+        }
+
+        .form-footer { margin-top: 34px; animation: fadeUp 0.8s 0.78s both; }
+
+        .btn-submit {
+            width: 100%; background: var(--green-ink); color: var(--parchment);
+            border: none; padding: 14px 28px;
+            font-family: 'Playfair Display', serif; font-size: 15px;
+            font-style: italic; letter-spacing: 2px; cursor: pointer;
+            border-radius: 1px; transition: all 0.35s ease;
+            position: relative; overflow: hidden;
+        }
+        .btn-submit::before {
+            content: ''; position: absolute; inset: 0;
+            background: #1e3d2a; transform: translateX(-101%);
+            transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        .btn-submit:hover::before { transform: translateX(0); }
+        .btn-submit:hover { box-shadow: 0 4px 22px rgba(45,90,61,0.45); letter-spacing: 3px; }
+        .btn-submit span { position: relative; z-index: 1; }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .signup-link {
+            text-align: center; margin-top: 20px;
+            font-family: 'Crimson Text', serif; font-size: 14px;
+            font-style: italic; color: #8b6914;
+        }
+        .signup-link a {
+            color: var(--rust); text-decoration: none;
+            border-bottom: 1px dotted var(--rust); transition: opacity 0.2s;
+        }
+        .signup-link a:hover { opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <div class="page-transition" id="page-transition"></div>
+    <div class="glow"></div>
+
+    <div class="page-wrapper">
+        <div class="diary-card">
+            <svg class="corner-ornament" viewBox="0 0 100 100" fill="none">
+                <path d="M50 5 L55 30 L80 20 L65 42 L95 50 L65 58 L80 80 L55 70 L50 95 L45 70 L20 80 L35 58 L5 50 L35 42 L20 20 L45 30 Z" stroke="#5c3d0e" stroke-width="1.5" fill="none"/>
+                <circle cx="50" cy="50" r="8" stroke="#5c3d0e" stroke-width="1" fill="none"/>
+            </svg>
+
+            <div class="card-inner">
+                <div class="diary-header">
+                    <span class="diary-label">Private Journal</span>
+                    <h1 class="diary-title">Welcome<br><em>Back.</em></h1>
+                    <p class="diary-subtitle">Your thoughts have been waiting.<br>Step back into your world.</p>
+                </div>
+
+                <div class="date-stamp" id="date-display"></div>
+
+                <div class="diary-quote">
+                    "A diary is a record of experiences and growth, or of a need to forget."
+                </div>
+
+                <div class="quill-divider"><span>❧</span></div>
+
+                <div class="field-group">
+                    <label class="field-label" for="username">Your Name</label>
+                    <input type="text" class="field-input" id="username" placeholder="Enter your diary name…" autocomplete="off">
+                    <div class="msg msg-error" id="msg-notfound">These pages don't recognise you. Try again.</div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label" for="password">Secret Passphrase</label>
+                    <input type="password" class="field-input" id="password" placeholder="Unlock your pages…">
+                    <div class="msg msg-error" id="msg-empty">Please fill in both fields</div>
+                    <div class="msg msg-error" id="msg-server">Something went wrong. Try again.</div>
+                </div>
+
+                <div class="form-footer">
+                    <button class="btn-submit" id="submit"><span>Unlock My Diary →</span></button>
+                    <div class="msg msg-success" id="msg-success" style="text-align:center;margin-top:14px;font-size:15px;">
+                        ✓ Welcome back — opening your diary…
+                    </div>
+                    <p class="signup-link">New to this diary? <a href="index.html">Begin your story</a></p>
+                </div>
+            </div>
+
+            <div class="page-fold"></div>
+        </div>
+    </div>
+
+    <script>
+        // ── Date ──
+        const now = new Date();
+        document.getElementById('date-display').textContent =
+            now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+        // ── Wisps ──
+        for (let i = 0; i < 8; i++) {
+            const w = document.createElement('div');
+            w.className = 'wisp';
+            const h = 20 + Math.random() * 60;
+            w.style.cssText = `
+                height: ${h}px;
+                left: ${Math.random() * 100}%;
+                animation-duration: ${18 + Math.random() * 22}s;
+                animation-delay: ${Math.random() * 20}s;
+                opacity: ${0.2 + Math.random() * 0.4};
+            `;
+            document.body.appendChild(w);
+        }
+
+        // ── Page transition ──
+        function navigateTo(url) {
+            const t = document.getElementById('page-transition');
+            t.classList.add('go');
+            setTimeout(() => window.location.href = url, 560);
+        }
+
+        document.querySelector('.signup-link a').addEventListener('click', e => {
+            e.preventDefault();
+            navigateTo('index.html');
+        });
+
+        // ── Login ──
+        const submitBtn = document.getElementById('submit');
+        submitBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value;
+
+            ['msg-notfound','msg-empty','msg-server','msg-success']
+                .forEach(id => document.getElementById(id).style.display = 'none');
+
+            if (!name || !pass) {
+                document.getElementById('msg-empty').style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.querySelector('span').textContent = 'Unlocking…';
+
+            try {
+                const res = await fetch('http://localhost:3000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',       // ✅ sends session cookie
+                    // ✅ FIX: password NOT lowercased — it is case-sensitive
+                    body: JSON.stringify({ username: name, password: pass })
+                });
+
+                const data = await res.json();
+
+                if (data.found) {
+                    document.getElementById('msg-success').style.display = 'block';
+                    // ✅ FIX: redirect to dashboard after successful login
+                    setTimeout(() => navigateTo('dashboard.html'), 1000);
+                } else {
+                    document.getElementById('msg-notfound').style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('msg-server').style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.querySelector('span').textContent = 'Unlock My Diary →';
+            }
+        });
+
+        // Allow Enter key to submit
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter') submitBtn.click();
+        });
+    </script>
+</body>
+</html>
