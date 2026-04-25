@@ -603,14 +603,12 @@
                     return;
                 }
 
-                // ✅ Auto-login after signup, then redirect to dashboard
-                const loginRes = await fetch("/signup", {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ username, password })
+                // ✅ Auto-login after signup so session is created, then go to dashboard
+                await fetch('/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: name, password: pass })
                 });
 
                 document.getElementById('msg-success').style.display = 'block';

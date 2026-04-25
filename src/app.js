@@ -2,27 +2,36 @@ const express = require('express')
 const app = express()
 const session = require('express-session')
 const cors = require('cors')
+const path = require('path')
 
-// ✅ FIX: cors must allow credentials + reflect origin (not wildcard) for sessions to work
+// ✅ Required on Render: tells Express it's behind HTTPS proxy
+//    Without this, secure cookies are silently dropped
+app.set('trust proxy', 1)
+
+// ✅ On Render your frontend and backend are the SAME origin (same service URL),
+//    so CORS is only needed during local dev. We keep it flexible:
+const allowedOrigin = process.env.FRONTEND_URL || '*'
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: allowedOrigin,
     credentials: true
 }))
 
 app.use(express.json())
 
 app.use(session({
-    secret: process.env.SESSION_SECRET, // ✅ FIXED
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-        maxAge: 1000 * 60 * 60 * 24
+        secure: process.env.NODE_ENV === 'production',   // ✅ true on Render, false locally
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 1000 * 60 * 60 * 24  // 24 hours
     }
-}));
-app.use(express.static('public'))
+}))
+
+// ✅ Serve HTML files from /public folder
+app.use(express.static(path.join(__dirname, '../public')))
 
 const { noteModel, content_save } = require('./note-models/note-model')
 
@@ -55,7 +64,6 @@ app.post('/login', async (req, res) => {
     try {
         let { username, password } = req.body
         username = username.toLowerCase()
-        // ✅ FIX: password should NOT be lowercased — it is case-sensitive
         const userFound = await noteModel.findOne({ username, password })
         if (!userFound) {
             return res.status(404).json({ found: false, message: 'User not found' })
@@ -102,7 +110,6 @@ app.post('/write-diary', isAuth, async (req, res) => {
 })
 
 // ── All diaries (user-scoped) ──
-// ✅ FIX: removed duplicate /all-diaries route; only one that uses session userId
 app.get('/all-diaries', isAuth, async (req, res) => {
     try {
         const data = await content_save
@@ -115,7 +122,6 @@ app.get('/all-diaries', isAuth, async (req, res) => {
 })
 
 // ── Streak (user-scoped) ──
-// ✅ FIX: was fetching ALL users' entries — now scoped to logged-in user
 app.get('/streak', isAuth, async (req, res) => {
     try {
         const entries = await content_save.find({ userId: req.session.userId })
@@ -146,7 +152,6 @@ app.patch('/update-diary/:id', isAuth, async (req, res) => {
     try {
         const { id } = req.params
         const { title, content, mood } = req.body
-        // ✅ Scoped to user's own entry only
         const updated = await content_save.findOneAndUpdate(
             { _id: id, userId: req.session.userId },
             { title, text: content, mood },
@@ -159,39 +164,22 @@ app.patch('/update-diary/:id', isAuth, async (req, res) => {
         res.status(500).json({ error: 'Update failed', detail: err.message })
     }
 })
-app.delete('/delete-diary/:id', isAuth, async(req, res) =>{
-    try{
-        const {id} = req.params
-        const {password} = req.body
+
+// ── Delete diary ──
+app.delete('/delete-diary/:id', isAuth, async (req, res) => {
+    try {
+        const { id } = req.params
+        const { password } = req.body
         const user = await noteModel.findById(req.session.userId)
-        if(!user){
-            return res.status(404).json({
-                error: "User not found"
-            })
-        }
-        if(user.password != password){
-            return res.status(401).json({
-                error: "Incorrect password"
-            })
-        }
-        const deleted = await content_save.findOneAndDelete({
-            _id : id,
-            userId: req.session.userId
-        })
-        if(!deleted){
-            return res.status(404).json({
-                error: "Diary not found"
-            })
-        }
-        res.json({
-            message: "Diary deleted successfully"
-        })
-    }
-    catch(err){
+        if (!user) return res.status(404).json({ error: 'User not found' })
+        if (user.password != password) return res.status(401).json({ error: 'Incorrect password' })
+        const deleted = await content_save.findOneAndDelete({ _id: id, userId: req.session.userId })
+        if (!deleted) return res.status(404).json({ error: 'Diary not found' })
+        res.json({ message: 'Diary deleted successfully' })
+    } catch (err) {
         console.log(err)
-        res.status(500).json({
-            error: "Delete failed"
-        })
+        res.status(500).json({ error: 'Delete failed' })
     }
 })
+
 module.exports = app
