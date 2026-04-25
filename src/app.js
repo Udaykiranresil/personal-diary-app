@@ -5,20 +5,20 @@ const cors = require('cors')
 
 // ✅ FIX: cors must allow credentials + reflect origin (not wildcard) for sessions to work
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: 'process.env.FRONTEND_URL',
     credentials: true
 }))
 
 app.use(express.json())
 
 app.use(session({
-    secret: 'my-secret-key',
+    secret: 'process.env.SESSION_SECRET',
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: false,
-        sameSite : 'lax',
+        secure: true,
+        sameSite : 'none',
         maxAge: 1000 * 60 * 60 * 24
     }
 }))
